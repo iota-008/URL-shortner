@@ -19,10 +19,12 @@ jobs:
 
     steps:
       - name: Add VM host key
-        if: ${{ secrets.VM_HOST_KEY != '' }}
+        if: ${{ env.VM_HOST_KEY != '' }}
+        env:
+          VM_HOST_KEY: ${{ secrets.VM_HOST_KEY }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VM_HOST_KEY }}" >> ~/.ssh/known_hosts
+          echo "$VM_HOST_KEY" >> ~/.ssh/known_hosts
 
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0

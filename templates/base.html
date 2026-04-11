@@ -25,7 +25,6 @@
             </a>
 
             <nav class="nav-links">
-                <a href="{{ url_for('session_api') }}">API</a>
                 {% if current_user %}
                     <span>{{ current_user.email }}</span>
                     <form action="{{ url_for('logout') }}" method="post">

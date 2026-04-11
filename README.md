@@ -185,10 +185,16 @@ Then bring it back up:
 ## Screenshots
 
 Home page  
-![Home Page](screenshots/1.png?raw=true)
+![Home Page](screenshots/home-page.png?raw=true)
 
 Create short link  
-![Create Link](screenshots/3.png?raw=true)
+![Create Link](screenshots/create-link-page.png?raw=true)
 
 Result page  
-![Result Page](screenshots/2.png?raw=true)
+![Result Page](screenshots/result-page.png?raw=true)
+
+Auth screen 1  
+![Auth screen 1](screenshots/auth-screen-1.png?raw=true)
+
+Auth screen 2  
+![Auth screen 2](screenshots/auth-screen-2.png?raw=true)

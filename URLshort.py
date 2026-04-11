@@ -22,7 +22,9 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'portfolio-demo-secret')
 database_uri = os.environ.get('DATABASE_URL', f"sqlite:///{os.path.join(app.root_path, 'shortly.db')}")
 if database_uri.startswith('postgres://'):
-    database_uri = database_uri.replace('postgres://', 'postgresql://', 1)
+    database_uri = database_uri.replace('postgres://', 'postgresql+psycopg://', 1)
+elif database_uri.startswith('postgresql://'):
+    database_uri = database_uri.replace('postgresql://', 'postgresql+psycopg://', 1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False

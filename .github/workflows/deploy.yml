@@ -9,7 +9,6 @@ on:
 env:
   VM_USER: ${{ vars.VM_USER }}
   DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
-  STACKS_DIR: ${{ vars.STACKS_DIR }}
   COMPOSE_FILE: ${{ vars.COMPOSE_FILE }}
   ENV_FILE: ${{ vars.ENV_FILE }}
 
@@ -39,9 +38,19 @@ jobs:
             set -euo pipefail
             echo "Starting URL Shortner deployment..."
 
-            if [ -z "${{ env.VM_USER }}" ] || [ -z "${{ env.DEPLOY_PATH }}" ] || [ -z "${{ env.STACKS_DIR }}" ] || [ -z "${{ env.COMPOSE_FILE }}" ] || [ -z "${{ env.ENV_FILE }}" ]; then
-              echo "Missing required repository variables. Set VM_USER, DEPLOY_PATH, STACKS_DIR, COMPOSE_FILE, and ENV_FILE."
+            if [ -z "${{ env.VM_USER }}" ] || [ -z "${{ env.DEPLOY_PATH }}" ]; then
+              echo "Missing required repository variables. Set VM_USER and DEPLOY_PATH."
               exit 1
+            fi
+
+            COMPOSE_FILE_PATH="${{ env.COMPOSE_FILE }}"
+            if [ -z "$COMPOSE_FILE_PATH" ]; then
+              COMPOSE_FILE_PATH="${{ env.DEPLOY_PATH }}/docker-compose.prod.yml"
+            fi
+
+            ENV_FILE_PATH="${{ env.ENV_FILE }}"
+            if [ -z "$ENV_FILE_PATH" ]; then
+              ENV_FILE_PATH="${{ env.DEPLOY_PATH }}/.env.production"
             fi
 
             echo "Preparing deployment directory: ${{ env.DEPLOY_PATH }}"
@@ -54,36 +63,30 @@ jobs:
             cd "${{ env.DEPLOY_PATH }}"
             git checkout master
 
-            echo "Syncing stack files"
-            sudo mkdir -p "${{ env.STACKS_DIR }}"
-            sudo rsync -av --delete \
-              --exclude '.git' \
-              --exclude '.venv' \
-              --exclude '__pycache__' \
-              --exclude '*.db' \
-              --exclude 'instance/' \
-              "${{ env.DEPLOY_PATH }}/" "${{ env.STACKS_DIR }}/"
-            sudo chown -R "${{ env.VM_USER }}": "${{ env.STACKS_DIR }}"
-
-            if [ ! -f "${{ env.ENV_FILE }}" ]; then
-              echo "Missing env file: ${{ env.ENV_FILE }}"
+            if [ ! -f "$ENV_FILE_PATH" ]; then
+              echo "Missing env file: $ENV_FILE_PATH"
               echo "Create it from .env.production.example before deploying."
               exit 1
             fi
 
+            if [ ! -f "$COMPOSE_FILE_PATH" ]; then
+              echo "Missing compose file: $COMPOSE_FILE_PATH"
+              exit 1
+            fi
+
             echo "Building and validating compose stack"
-            cd "${{ env.STACKS_DIR }}"
-            docker compose -f "${{ env.COMPOSE_FILE }}" --env-file "${{ env.ENV_FILE }}" pull --ignore-pull-failures
-            docker compose -f "${{ env.COMPOSE_FILE }}" --env-file "${{ env.ENV_FILE }}" build --pull --parallel
-            docker compose -f "${{ env.COMPOSE_FILE }}" --env-file "${{ env.ENV_FILE }}" config -q
+            cd "${{ env.DEPLOY_PATH }}"
+            docker compose -f "$COMPOSE_FILE_PATH" --env-file "$ENV_FILE_PATH" pull --ignore-pull-failures
+            docker compose -f "$COMPOSE_FILE_PATH" --env-file "$ENV_FILE_PATH" build --pull --parallel
+            docker compose -f "$COMPOSE_FILE_PATH" --env-file "$ENV_FILE_PATH" config -q
 
             echo "Starting services"
-            docker compose -f "${{ env.COMPOSE_FILE }}" --env-file "${{ env.ENV_FILE }}" up -d --remove-orphans
+            docker compose -f "$COMPOSE_FILE_PATH" --env-file "$ENV_FILE_PATH" up -d --remove-orphans
 
             echo "Container status"
-            docker compose -f "${{ env.COMPOSE_FILE }}" --env-file "${{ env.ENV_FILE }}" ps
+            docker compose -f "$COMPOSE_FILE_PATH" --env-file "$ENV_FILE_PATH" ps
 
             echo "Recent web logs"
-            docker compose -f "${{ env.COMPOSE_FILE }}" --env-file "${{ env.ENV_FILE }}" logs --tail=40 web || true
+            docker compose -f "$COMPOSE_FILE_PATH" --env-file "$ENV_FILE_PATH" logs --tail=40 web || true
 
             echo "Deployment complete"

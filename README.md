@@ -106,16 +106,15 @@ If you are already using Traefik on your VM, route the `web` service through Tra
 1. Prepare VM
 
 - Install Docker + Compose plugin
-- Create stack directory (example `/home/ubuntu/stacks/url-shortner`)
-- Create `.env.production` on the VM (example `/home/ubuntu/stacks/url-shortner/.env.production`)
+- Create deploy directory (example `/opt/projects/url-shortner`)
+- Create `.env.production` on the VM (example `/opt/projects/url-shortner/.env.production`)
 
 2. Add GitHub repository variables
 
 - `VM_USER` (example `ubuntu`)
 - `DEPLOY_PATH` (example `/opt/projects/url-shortner`)
-- `STACKS_DIR` (example `/home/ubuntu/stacks/url-shortner`)
-- `COMPOSE_FILE` (example `/home/ubuntu/stacks/url-shortner/docker-compose.prod.yml`)
-- `ENV_FILE` (example `/home/ubuntu/stacks/url-shortner/.env.production`)
+- `COMPOSE_FILE` (optional, defaults to `$DEPLOY_PATH/docker-compose.prod.yml`)
+- `ENV_FILE` (optional, defaults to `$DEPLOY_PATH/.env.production`)
 - `VM_PORT` (optional, default SSH is `22`)
 
 3. Add GitHub repository secrets
@@ -124,9 +123,9 @@ If you are already using Traefik on your VM, route the `web` service through Tra
 - `SSH_PRIVATE_KEY`
 - `VM_HOST_KEY` (recommended)
 
-4. Push to `main`
+4. Push to `master`
 
-Workflow `.github/workflows/deploy.yml` connects over SSH, clones the latest `main`, syncs files to `STACKS_DIR`, validates compose config, and deploys with Docker Compose.
+Workflow `.github/workflows/deploy.yml` connects over SSH, clones the latest `master` into `DEPLOY_PATH`, validates compose config, and deploys with Docker Compose from that path.
 
 ### How to get `SSH_PRIVATE_KEY`, `VM_HOST`, and `VM_HOST_KEY`
 

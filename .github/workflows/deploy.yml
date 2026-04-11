@@ -45,11 +45,11 @@ jobs:
             fi
 
             echo "Preparing deployment directory: ${{ env.DEPLOY_PATH }}"
+            sudo rm -rf "${{ env.DEPLOY_PATH }}"
             sudo mkdir -p "${{ env.DEPLOY_PATH }}"
             sudo chown -R "${{ env.VM_USER }}": "${{ env.DEPLOY_PATH }}"
 
             echo "Cloning latest repository into deployment path"
-            rm -rf "${{ env.DEPLOY_PATH }}"
             git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" "${{ env.DEPLOY_PATH }}"
             cd "${{ env.DEPLOY_PATH }}"
             git checkout master

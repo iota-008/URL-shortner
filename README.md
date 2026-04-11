@@ -1,47 +1,56 @@
 # Shortly Studio
 
-Shortly Studio is a Flask-based URL shortener with custom aliases, redirect tracking, Redis caching, optional async click processing, and a clean portfolio-ready UI.
+Shortly Studio is a Flask URL shortener with custom aliases, click tracking, Redis-backed caching, async click processing, and a simple dashboard for guest or signed-in usage.
 
-## What this project does
+## Features
 
-- Create short links with custom codes
-- Redirect short links to original URLs
-- Track clicks per short link
-- Show recent links via dashboard and JSON API
-- Handle high traffic better using Redis cache + queue worker
+- Custom short codes
+- Redirect tracking with click counts
+- Redis cache for fast redirect lookups
+- Async click queue worker
+- Guest session history and optional user accounts
+- Rate limiting with Flask-Limiter
+- Docker-based production deployment behind Traefik
 
-## Tech stack
+## Stack
 
-- Python, Flask
-- SQLAlchemy (SQLite locally, PostgreSQL in production)
-- Redis (cache + async queue)
-- Flask-Limiter (rate limiting)
-- Jinja + vanilla CSS/JS
+- Python 3.12
+- Flask + Jinja
+- Flask-SQLAlchemy / SQLAlchemy
+- PostgreSQL in production, SQLite locally
+- Redis for cache and click queue
+- Gunicorn for app serving
+- Docker Compose for deployment
 
-## Project structure
+## Project layout
 
-- `URLshort.py` → main web app
-- `click_worker.py` → background worker for queued click events
-- `templates/` and `static/` → frontend
-- `docker-compose.prod.yml` + `Dockerfile` → containerized deployment
-- `.github/workflows/deploy.yml` → CI/CD deploy to VM
+- `URLshort.py` — main Flask app
+- `click_worker.py` — background worker for queued click increments
+- `templates/` — HTML templates
+- `static/` — CSS and browser-side JS
+- `docker-compose.prod.yml` — production stack
+- `.github/workflows/deploy.yml` — VM deployment workflow
 
 ## Environment variables
 
-Copy `.env.example` to `.env` for local run, and `.env.production.example` to `.env.production` for server run.
+Copy `.env.example` to `.env` for local development and `.env.production.example` to `.env.production` on the server.
 
-Main variables:
+Core variables:
 
 - `SECRET_KEY`
+- `APP_DOMAIN`
 - `DATABASE_URL`
 - `REDIS_URL`
 - `ENABLE_ASYNC_CLICKS`
 - `CLICK_QUEUE_NAME`
 - `RATE_LIMIT_DEFAULT`
 
-If `DATABASE_URL` is not set, local SQLite (`shortly.db`) is used.
+Database notes:
 
-## Run locally (recommended first)
+- local SQLite: `sqlite:///shortly.db`
+- production PostgreSQL: `postgresql+psycopg://shortly:password@db:5432/shortly`
+
+## Local development
 
 1. Install dependencies
 
@@ -53,108 +62,125 @@ If `DATABASE_URL` is not set, local SQLite (`shortly.db`) is used.
 
 	```env
 	SECRET_KEY=dev-secret
+	APP_DOMAIN=localhost
 	DATABASE_URL=sqlite:///shortly.db
-	REDIS_URL=redis://localhost:6379/0
+	REDIS_URL=redis://127.0.0.1:6379/0
 	ENABLE_ASYNC_CLICKS=true
 	CLICK_QUEUE_NAME=shortly:click-events
 	RATE_LIMIT_DEFAULT=300 per minute
 	```
 
-3. Start web app
+3. Start Redis (optional but recommended)
+
+	`docker run -d --name shortly-redis -p 6379:6379 redis:7-alpine`
+
+4. Start the Flask app
 
 	`flask --app URLshort run --debug`
 
-4. (Optional but recommended) Start worker in another terminal
+5. Start the click worker in a second terminal
 
 	`python click_worker.py`
 
-5. Open in browser
+6. Open the app
 
 	`http://127.0.0.1:5000`
 
-## Run Redis locally
+## Production with Docker Compose
 
-With Docker:
+1. Create `/opt/projects/url-shortner/.env.production`
+2. Fill it with production values
+3. Start the stack:
 
-`docker run -d --name shortly-redis -p 6379:6379 redis:7-alpine`
+	`docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build`
 
-Check:
-
-`redis-cli -h 127.0.0.1 -p 6379 ping`
-
-## Run with Docker (production-style)
-
-1. Copy and configure env file
-
-	`cp .env.production.example .env.production`
-
-2. Start full stack
-
-	`docker compose -f docker-compose.prod.yml up -d --build`
-
-Services started:
+Services:
 
 - `web`
 - `worker`
-- `db` (Postgres)
+- `db`
 - `redis`
 
-If you are already using Traefik on your VM, route the `web` service through Traefik and remove the Caddy service.
+The app is designed to sit behind your existing Traefik instance. Set `APP_DOMAIN` to your DuckDNS or custom domain so Traefik can route the service.
 
-## Deploy to VM (GitHub Actions)
+## GitHub Actions VM deployment
 
-1. Prepare VM
+The workflow in `.github/workflows/deploy.yml` deploys on push to `master`.
 
-- Install Docker + Compose plugin
-- Create deploy directory (example `/opt/projects/url-shortner`)
-- Create `.env.production` on the VM (example `/opt/projects/url-shortner/.env.production`)
+### Repository variables
 
-2. Add GitHub repository variables
+- `VM_USER` — example `ubuntu`
+- `DEPLOY_PATH` — example `/opt/projects/url-shortner`
+- `COMPOSE_FILE` — optional, defaults to `$DEPLOY_PATH/docker-compose.prod.yml`
+- `ENV_FILE` — optional, defaults to `$DEPLOY_PATH/.env.production`
 
-- `VM_USER` (example `ubuntu`)
-- `DEPLOY_PATH` (example `/opt/projects/url-shortner`)
-- `COMPOSE_FILE` (optional, defaults to `$DEPLOY_PATH/docker-compose.prod.yml`)
-- `ENV_FILE` (optional, defaults to `$DEPLOY_PATH/.env.production`)
-- `VM_PORT` (optional, default SSH is `22`)
-
-3. Add GitHub repository secrets
+### Repository secrets
 
 - `VM_HOST`
 - `SSH_PRIVATE_KEY`
-- `VM_HOST_KEY` (recommended)
+- `VM_HOST_KEY` — recommended for host verification
 
-4. Push to `master`
+### SSH setup
 
-Workflow `.github/workflows/deploy.yml` connects over SSH, clones the latest `master` into `DEPLOY_PATH`, validates compose config, and deploys with Docker Compose from that path.
+Generate a dedicated deploy key:
 
-### How to get `SSH_PRIVATE_KEY`, `VM_HOST`, and `VM_HOST_KEY`
+`ssh-keygen -t ed25519 -C "github-actions-url-shortner" -f ~/.ssh/urlshortner_actions`
 
-On your local machine:
+Authorize it on the VM:
 
-1. Generate a dedicated deploy key pair:
+`ssh-copy-id -i ~/.ssh/urlshortner_actions.pub ubuntu@YOUR_VM_IP`
 
-	`ssh-keygen -t ed25519 -C "github-actions-url-shortner" -f ~/.ssh/urlshortner_actions`
+Get the private key for GitHub:
 
-2. Add the public key to the VM user:
+`cat ~/.ssh/urlshortner_actions`
 
-	`ssh-copy-id -i ~/.ssh/urlshortner_actions.pub ubuntu@YOUR_VM_IP`
+Get the host key for `VM_HOST_KEY`:
 
-3. Copy private key into GitHub secret `SSH_PRIVATE_KEY`:
+`ssh-keyscan -H YOUR_VM_IP`
 
-	`cat ~/.ssh/urlshortner_actions`
+## Secrets and password generation
 
-4. Set `VM_HOST` secret to your VM IP or DNS name.
+Generate a Flask `SECRET_KEY`:
 
-5. Get host key and save as `VM_HOST_KEY` secret:
+`python -c "import secrets; print(secrets.token_urlsafe(48))"`
 
-	`ssh-keyscan -H YOUR_VM_IP`
+Generate a URL-safe PostgreSQL password:
 
-	Copy the full output line (e.g. `your-host ssh-ed25519 AAAA...`) into the secret.
+`python -c "import secrets,string; chars=string.ascii_letters+string.digits+'_-'; print(''.join(secrets.choice(chars) for _ in range(40)))"`
 
-## Notes
+Example production database settings:
 
-- Set `APP_DOMAIN` in `.env.production` to the domain Traefik should route (for example, your DuckDNS host).
-- If you do not have a domain yet, use DuckDNS and point it to your VM public IP.
+```env
+POSTGRES_DB=shortly
+POSTGRES_USER=shortly
+POSTGRES_PASSWORD=replace-with-url-safe-password
+DATABASE_URL=postgresql+psycopg://shortly:replace-with-url-safe-password@db:5432/shortly
+REDIS_URL=redis://redis:6379/0
+```
+
+## Troubleshooting
+
+### Invalid SQLAlchemy URL
+
+Use a full `DATABASE_URL` and avoid duplicating the variable name:
+
+```env
+DATABASE_URL=postgresql+psycopg://shortly:password@db:5432/shortly
+```
+
+### `No module named psycopg2`
+
+This project uses `psycopg` v3. Keep the PostgreSQL URL in `postgresql+psycopg://...` form.
+
+### Postgres password authentication failed
+
+If you changed `POSTGRES_PASSWORD` after the database volume was created, reset the stack volumes for a fresh deploy:
+
+`docker compose --env-file .env.production -f docker-compose.prod.yml down -v`
+
+Then bring it back up:
+
+`docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build`
 
 ## Screenshots
 

@@ -18,13 +18,19 @@ from sqlalchemy.exc import IntegrityError
 
 load_dotenv()
 
+
+def normalize_database_uri(database_uri):
+    if database_uri.startswith('postgres://'):
+        return database_uri.replace('postgres://', 'postgresql+psycopg://', 1)
+    if database_uri.startswith('postgresql://'):
+        return database_uri.replace('postgresql://', 'postgresql+psycopg://', 1)
+    return database_uri
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'portfolio-demo-secret')
-database_uri = os.environ.get('DATABASE_URL', f"sqlite:///{os.path.join(app.root_path, 'shortly.db')}")
-if database_uri.startswith('postgres://'):
-    database_uri = database_uri.replace('postgres://', 'postgresql+psycopg://', 1)
-elif database_uri.startswith('postgresql://'):
-    database_uri = database_uri.replace('postgresql://', 'postgresql+psycopg://', 1)
+database_uri = normalize_database_uri(
+    os.environ.get('DATABASE_URL', f"sqlite:///{os.path.join(app.root_path, 'shortly.db')}")
+)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -33,6 +39,8 @@ db = SQLAlchemy(app)
 
 CODE_PATTERN = re.compile(r'^[a-z0-9_-]{3,32}$')
 RECENT_LINK_LIMIT = 10
+CACHE_TTL_SECONDS = 3600
+MAX_SESSION_CODES = 200
 
 redis_client = None
 redis_url = os.environ.get('REDIS_URL')
@@ -112,7 +120,7 @@ def cache_link(link):
         'clicks': int(link.clicks),
         'is_active': bool(link.is_active),
     }
-    redis_client.set(cache_key(link.code), json.dumps(payload), ex=3600)
+    redis_client.set(cache_key(link.code), json.dumps(payload), ex=CACHE_TTL_SECONDS)
 
 
 def get_cached_link(code):
@@ -228,7 +236,7 @@ def remember_user_code(code):
         return
 
     existing_codes.append(code)
-    session['my_codes'] = existing_codes[-200:]
+    session['my_codes'] = existing_codes[-MAX_SESSION_CODES:]
 
 
 def get_user_recent_links(user_codes, limit=RECENT_LINK_LIMIT):
@@ -251,37 +259,36 @@ def get_current_user():
     return db.session.get(User, user_id)
 
 
-def get_current_scope_links(limit=RECENT_LINK_LIMIT):
-    current_user = get_current_user()
+def get_current_scope_query(current_user=None):
+    current_user = current_user or get_current_user()
     if current_user:
-        recent = (
-            Link.query.filter_by(owner_id=current_user.id, is_active=True)
-            .order_by(Link.created_at.desc())
-            .limit(limit)
-            .all()
-        )
-        return [link_to_payload(link) for link in recent]
-
-    return get_user_recent_links(get_user_codes(), limit=limit)
-
-
-def get_current_scope_stats():
-    current_user = get_current_user()
-    if current_user:
-        total_links, total_clicks = db.session.query(
-            func.count(Link.code),
-            func.coalesce(func.sum(Link.clicks), 0),
-        ).filter(Link.owner_id == current_user.id, Link.is_active.is_(True)).one()
-        return int(total_links), int(total_clicks)
+        return Link.query.filter_by(owner_id=current_user.id, is_active=True)
 
     user_codes = get_user_codes()
     if not user_codes:
+        return None
+
+    return Link.query.filter(Link.code.in_(user_codes), Link.is_active.is_(True))
+
+
+def get_current_scope_links(limit=RECENT_LINK_LIMIT):
+    query = get_current_scope_query()
+    if not query:
+        return []
+
+    recent = query.order_by(Link.created_at.desc()).limit(limit).all()
+    return [link_to_payload(link) for link in recent]
+
+
+def get_current_scope_stats():
+    query = get_current_scope_query()
+    if not query:
         return 0, 0
 
-    total_links, total_clicks = db.session.query(
+    total_links, total_clicks = query.with_entities(
         func.count(Link.code),
         func.coalesce(func.sum(Link.clicks), 0),
-    ).filter(Link.code.in_(user_codes), Link.is_active.is_(True)).one()
+    ).one()
     return int(total_links), int(total_clicks)
 
 

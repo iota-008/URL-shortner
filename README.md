@@ -153,7 +153,7 @@ On your local machine:
 
 ## Notes
 
-- For HTTPS certificates, `APP_DOMAIN` and `ACME_EMAIL` are required in `.env.production`.
+- Set `APP_DOMAIN` in `.env.production` to the domain Traefik should route (for example, your DuckDNS host).
 - If you do not have a domain yet, use DuckDNS and point it to your VM public IP.
 
 ## Screenshots

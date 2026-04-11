@@ -1,0 +1,79 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: shortly-studio:latest
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose:
+      - "8000"
+    networks:
+      - web
+    labels:
+      - traefik.enable=true
+      - "traefik.http.routers.shortly.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.shortly.entrypoints=websecure"
+      - "traefik.http.routers.shortly.tls.certresolver=letsencrypt"
+      - "traefik.http.services.shortly.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.shortly-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.shortly-http.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.shortly-http.entrypoints=web"
+      - "traefik.http.routers.shortly-http.middlewares=shortly-https-redirect"
+      - "traefik.docker.network=web"
+
+  worker:
+    image: shortly-studio:latest
+    restart: unless-stopped
+    command: ["python", "click_worker.py"]
+    env_file:
+      - .env.production
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - web
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - web
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - redis_data:/data
+    networks:
+      - web
+
+networks:
+  web:
+    external: true
+
+volumes:
+  postgres_data:
+  redis_data:

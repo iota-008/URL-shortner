@@ -1,0 +1,87 @@
+name: Deploy URL Shortner
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+env:
+  VM_USER: ${{ vars.VM_USER }}
+  DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+  STACKS_DIR: ${{ vars.STACKS_DIR }}
+  COMPOSE_FILE: ${{ vars.COMPOSE_FILE }}
+  ENV_FILE: ${{ vars.ENV_FILE }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Add VM host key
+        if: ${{ secrets.VM_HOST_KEY != '' }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_HOST_KEY }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ env.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          timeout: 1h
+          command_timeout: 1h
+          script: |
+            set -euo pipefail
+            echo "Starting URL Shortner deployment..."
+
+            if [ -z "${{ env.VM_USER }}" ] || [ -z "${{ env.DEPLOY_PATH }}" ] || [ -z "${{ env.STACKS_DIR }}" ] || [ -z "${{ env.COMPOSE_FILE }}" ] || [ -z "${{ env.ENV_FILE }}" ]; then
+              echo "Missing required repository variables. Set VM_USER, DEPLOY_PATH, STACKS_DIR, COMPOSE_FILE, and ENV_FILE."
+              exit 1
+            fi
+
+            echo "Preparing deployment directory: ${{ env.DEPLOY_PATH }}"
+            sudo mkdir -p "${{ env.DEPLOY_PATH }}"
+            sudo chown -R "${{ env.VM_USER }}": "${{ env.DEPLOY_PATH }}"
+
+            echo "Cloning latest repository into deployment path"
+            rm -rf "${{ env.DEPLOY_PATH }}"
+            git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" "${{ env.DEPLOY_PATH }}"
+            cd "${{ env.DEPLOY_PATH }}"
+            git checkout master
+
+            echo "Syncing stack files"
+            sudo mkdir -p "${{ env.STACKS_DIR }}"
+            sudo rsync -av --delete \
+              --exclude '.git' \
+              --exclude '.venv' \
+              --exclude '__pycache__' \
+              --exclude '*.db' \
+              --exclude 'instance/' \
+              "${{ env.DEPLOY_PATH }}/" "${{ env.STACKS_DIR }}/"
+            sudo chown -R "${{ env.VM_USER }}": "${{ env.STACKS_DIR }}"
+
+            if [ ! -f "${{ env.ENV_FILE }}" ]; then
+              echo "Missing env file: ${{ env.ENV_FILE }}"
+              echo "Create it from .env.production.example before deploying."
+              exit 1
+            fi
+
+            echo "Building and validating compose stack"
+            cd "${{ env.STACKS_DIR }}"
+            docker compose -f "${{ env.COMPOSE_FILE }}" --env-file "${{ env.ENV_FILE }}" pull --ignore-pull-failures
+            docker compose -f "${{ env.COMPOSE_FILE }}" --env-file "${{ env.ENV_FILE }}" build --pull --parallel
+            docker compose -f "${{ env.COMPOSE_FILE }}" --env-file "${{ env.ENV_FILE }}" config -q
+
+            echo "Starting services"
+            docker compose -f "${{ env.COMPOSE_FILE }}" --env-file "${{ env.ENV_FILE }}" up -d --remove-orphans
+
+            echo "Container status"
+            docker compose -f "${{ env.COMPOSE_FILE }}" --env-file "${{ env.ENV_FILE }}" ps
+
+            echo "Recent web logs"
+            docker compose -f "${{ env.COMPOSE_FILE }}" --env-file "${{ env.ENV_FILE }}" logs --tail=40 web || true
+
+            echo "Deployment complete"

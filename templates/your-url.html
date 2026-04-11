@@ -1,28 +1,49 @@
 {% extends "base.html" %}
 
-{% block title%}URL Shortened to {{ code }} {% endblock%}
+{% block title %}Shortly Studio | Link created{% endblock %}
 
 {% block main %}
 
-<div class="container text-center">
-    <h1 class="jumbotron-heading">URL Created Successfully</h1>
-    <h2>Short-hand for your url is {{code}}</h2>
-    <input type="text" id="new_url" value="{{ url_for ('redirect_to',code=code, _external=True) }}" readonly>
+<section class="result-layout surface-card">
+    <span class="eyebrow success-eyebrow">Link published</span>
+    <h1>Your short link is ready to share.</h1>
+    <p class="hero-text">
+        The redirect was created successfully. Copy it, test it, and add it to your portfolio walkthrough.
+    </p>
 
-    <p> <button onclick="myFunction()" class="btn btn-primary my-2 ">Copy URL</button></p>
-    <a href=" {{url_for('index')}}">Go to Home Page</a>
+    <div class="copy-panel">
+        <label for="new_url">Short URL</label>
+        <div class="copy-row">
+            <input type="text" id="new_url" value="{{ link.short_url }}" readonly>
+            <button class="button button-primary" type="button" data-copy-target="new_url">Copy</button>
+        </div>
+    </div>
 
+    <div class="result-grid">
+        <article class="detail-card">
+            <span>Short code</span>
+            <strong>/{{ link.code }}</strong>
+        </article>
+        <article class="detail-card">
+            <span>Destination</span>
+            <strong>{{ link.display_host }}</strong>
+        </article>
+        <article class="detail-card">
+            <span>Clicks so far</span>
+            <strong>{{ link.clicks }}</strong>
+        </article>
+    </div>
 
-</div>
-<script>
-    function myFunction() {
+    <div class="destination-card">
+        <span>Full destination URL</span>
+        <p>{{ link.url }}</p>
+    </div>
 
-        const copyText = document.getElementById('new_url');
-        copyText.focus();
-        copyText.select();
-        document.execCommand("copy");
-    }
-</script>
+    <div class="action-row">
+        <a class="button button-secondary" href="{{ url_for('index') }}">Create another</a>
+        <a class="button button-ghost" href="{{ link.short_url }}" target="_blank" rel="noopener noreferrer">Open short link</a>
+    </div>
+</section>
 
 
 {% endblock %}

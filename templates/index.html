@@ -1,41 +1,94 @@
 {% extends "base.html" %}
 
-{% block title%}URL Shortner{% endblock%}
-
-<h1>Welcome to URL Shortner</h1>
+{% block title %}Shortly Studio | Smart URL Shortener{% endblock %}
 
 {% block main %}
 
-<div class="container">
-    <div class="card-deck mb-3">
-        <div class="card mb-4 shadow-sm">
-            <div class="card-header">
-                <h4 class="my-0 font-weight-normal text-center">WEBSITE</h4>
-            </div>
-            <div class="card-body">
-                <form action="your-url" method="post">
-                    <label for="url">Website URL</label>
-                    <input type="url" class="form-control" name="url" id="url" value="" required>
-                    <br>
-                    <label for="code">Short Name</label>
-                    <input type="text" class="form-control" name="code" id="code" value="" required>
-                    <br>
-                    <button class="btn btn-primary btn-lg btn-block" type="submit">Shorten</button>
-                </form>
-            </div>
+<section class="hero-grid">
+    <div class="hero-copy surface-card">
+        <span class="eyebrow">Private by default</span>
+        <h1>Shorten links, quickly and privately.</h1>
+        <p class="hero-text">
+            {% if current_user %}
+            You are using account mode. This dashboard shows links attached to your account.
+            {% else %}
+            You are using guest mode. This dashboard only shows links from your current browser session.
+            {% endif %}
+        </p>
+
+        <div class="stat-grid">
+            <article class="stat-card">
+                <span>{% if current_user %}Account links{% else %}Your links{% endif %}</span>
+                <strong>{{ stats.total_links }}</strong>
+            </article>
+            <article class="stat-card">
+                <span>Total clicks</span>
+                <strong>{{ stats.total_clicks }}</strong>
+            </article>
+            <article class="stat-card">
+                <span>Live API rows</span>
+                <strong>{{ recent_links|length }}</strong>
+            </article>
         </div>
     </div>
-</div>
 
-<!-- {% if codes %}
-<h2> Codes you have created </h2>
-<ul>
-    {% for code in codes %}
-    <a href="{{ url_for('redirect_to',code=code) }}">
-        <li>{{code}}</li>
-    </a>
-    {% endfor %}
+    <div class="surface-card form-card">
+        <div class="section-heading">
+            <span class="section-tag">Create a short link</span>
+            <h2>Launch a new alias</h2>
+            <p>Use 3-32 lowercase letters, numbers, hyphens, or underscores.</p>
+        </div>
 
-</ul>
-{% endif %} -->
+        <form action="{{ url_for('your_url') }}" method="post" class="link-form">
+            <label for="url">Destination URL</label>
+            <input type="text" name="url" id="url" placeholder="https://example.com/very/long/link" required>
+
+            <label for="code">Custom short code</label>
+            <div class="input-with-prefix">
+                <span>{{ request.host }}/</span>
+                <input type="text" name="code" id="code" placeholder="my-launch" minlength="3" maxlength="32" required>
+            </div>
+
+            <button class="button button-primary" type="submit">Create short URL</button>
+        </form>
+    </div>
+</section>
+
+<section class="surface-card recent-section">
+    <div class="section-heading section-heading-inline">
+        <div>
+            <span class="section-tag">Your links</span>
+            <h2>{% if current_user %}Recent links from your account{% else %}Recent links from this browser{% endif %}</h2>
+        </div>
+        <a class="button button-secondary" href="{{ url_for('session_api') }}">View JSON API</a>
+    </div>
+
+    {% if recent_links %}
+        <div class="recent-links-grid">
+            {% for link in recent_links %}
+                <article class="link-card">
+                    <div class="link-card-top">
+                        <div>
+                            <span class="link-label">/{{ link.code }}</span>
+                            <a class="link-url" href="{{ link.short_url }}" target="_blank" rel="noopener noreferrer">{{ link.short_url }}</a>
+                        </div>
+                        <span class="pill">{{ link.clicks }} clicks</span>
+                    </div>
+
+                    <p class="destination">{{ link.url }}</p>
+
+                    <div class="link-meta">
+                        <span>{{ link.display_host }}</span>
+                        <span>{{ link.created_at }}</span>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h3>No links yet</h3>
+            <p>Create your first short link to populate this showcase section.</p>
+        </div>
+    {% endif %}
+</section>
 {% endblock %}

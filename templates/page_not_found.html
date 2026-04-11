@@ -1,14 +1,18 @@
 {% extends "base.html" %}
 
-{% block title%}Page Not Found{% endblock%}
+{% block title %}Shortly Studio | Page not found{% endblock %}
 
 {% block main %}
 
-<div class="container text-center">
-    <h1 class="jumbotron-heading">Page Not Found</h1>
-    <p class="lead">The short name is not available,please first create one to use it </p>
-    <p><a href="{{ url_for('index') }}"><button class="btn btn-primary my-2">Home Page</button></a>
+<section class="surface-card error-layout">
+    <span class="eyebrow">404 error</span>
+    <h1>This short link does not exist.</h1>
+    <p class="hero-text">
+        The alias may have been removed, renamed, or never created. Head back to the dashboard and generate a fresh link.
     </p>
-</div>
+    <div class="action-row centered">
+        <a class="button button-primary" href="{{ url_for('index') }}">Return home</a>
+    </div>
+</section>
 
 {% endblock %}

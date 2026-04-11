@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Sign in | Shortly Studio{% endblock %}
+
+{% block main %}
+<section class="result-layout surface-card">
+    <span class="eyebrow">Account</span>
+    <h1>Sign in</h1>
+    <p class="hero-text">Access your account-based dashboard and links.</p>
+
+    <form action="{{ url_for('login') }}" method="post" class="link-form">
+        <label for="email">Email</label>
+        <input type="email" name="email" id="email" placeholder="you@example.com" required>
+
+        <label for="password">Password</label>
+        <input type="password" name="password" id="password" placeholder="At least 8 characters" required>
+
+        <button class="button button-primary" type="submit">Sign in</button>
+    </form>
+
+    <div class="action-row">
+        <a class="button button-secondary" href="{{ url_for('register') }}">Create account</a>
+        <a class="button button-ghost" href="{{ url_for('index') }}">Continue as guest</a>
+    </div>
+</section>
+{% endblock %}

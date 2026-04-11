@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Create account | Shortly Studio{% endblock %}
+
+{% block main %}
+<section class="result-layout surface-card">
+    <span class="eyebrow">Account</span>
+    <h1>Create your account</h1>
+    <p class="hero-text">Enable account-based dashboard access across devices.</p>
+
+    <form action="{{ url_for('register') }}" method="post" class="link-form">
+        <label for="email">Email</label>
+        <input type="email" name="email" id="email" placeholder="you@example.com" required>
+
+        <label for="password">Password</label>
+        <input type="password" name="password" id="password" placeholder="Minimum 8 characters" minlength="8" required>
+
+        <label for="confirm_password">Confirm password</label>
+        <input type="password" name="confirm_password" id="confirm_password" placeholder="Repeat password" minlength="8" required>
+
+        <button class="button button-primary" type="submit">Create account</button>
+    </form>
+
+    <div class="action-row">
+        <a class="button button-secondary" href="{{ url_for('login') }}">Already have an account</a>
+        <a class="button button-ghost" href="{{ url_for('index') }}">Back to home</a>
+    </div>
+</section>
+{% endblock %}

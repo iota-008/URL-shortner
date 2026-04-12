@@ -2,6 +2,14 @@
 
 Shortly Studio is a production-oriented Flask URL shortener with custom aliases, authenticated/guest scopes, Redis-backed redirect performance, async click processing, and VM deployment automation.
 
+## Snapshot
+
+- **Product:** Production-ready URL shortener with custom aliases and account/session scoping.
+- **Core engineering value:** Fast redirects via Redis cache + DB fallback with queue-backed async click analytics.
+- **Backend:** Flask, SQLAlchemy, Redis, PostgreSQL, Gunicorn.
+- **DevOps:** Docker Compose, Traefik TLS routing, GitHub Actions SSH deployment to VM.
+- **Ownership signal:** Full-stack implementation from app logic to CI/CD and production rollout.
+
 ## Feature overview
 
 - Custom short links: Create branded aliases (or auto-generated codes) for long URLs.

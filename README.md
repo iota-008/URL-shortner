@@ -164,17 +164,4 @@ Redirects still work but clicks may be incremented inline; verify Redis containe
 
 ## Screenshots
 
-Home page  
-![Home Page](screenshots/screen-01-home-page.png?raw=true)
-
-Create short link  
-![Create Link](screenshots/screen-02-create-link-page.png?raw=true)
-
-Result page  
-![Result Page](screenshots/screen-03-result-page.png?raw=true)
-
-Auth screen 1  
-![Auth screen 1](screenshots/screen-04-auth-screen-1.png?raw=true)
-
-Auth screen 2  
-![Auth screen 2](screenshots/screen-05-auth-screen-2.png?raw=true)
+<img width="1218" height="1098" alt="image" src="https://github.com/user-attachments/assets/cfe7cebd-1ff6-45d6-af9a-3dfa6e031163" />

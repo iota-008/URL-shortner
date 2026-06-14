@@ -50,12 +50,13 @@ if redis_url:
         redis_client.ping()
     except redis.RedisError:
         redis_client = None
+        redis_url = None
 
 click_queue_name = os.environ.get('CLICK_QUEUE_NAME', 'shortly:click-events')
 async_click_enabled = os.environ.get('ENABLE_ASYNC_CLICKS', 'true').lower() == 'true'
 
 rate_limit_default = os.environ.get('RATE_LIMIT_DEFAULT', '300 per minute')
-rate_limit_storage_uri = redis_url if redis_url else 'memory://'
+rate_limit_storage_uri = redis_url if redis_client else 'memory://'
 limiter = Limiter(
     key_func=get_remote_address,
     storage_uri=rate_limit_storage_uri,

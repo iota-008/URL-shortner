@@ -6,47 +6,46 @@
 
 <section class="hero-grid">
     <div class="hero-copy surface-card">
-        <span class="eyebrow">Private by default</span>
-        <h1>Shorten links, quickly and privately.</h1>
-        <p class="hero-text">
-            {% if current_user %}
-            You are using account mode. This dashboard shows links attached to your account.
-            {% else %}
-            You are using guest mode. This dashboard only shows links from your current browser session.
-            {% endif %}
-        </p>
+        <span class="eyebrow">Fast. Private. Reliable.</span>
+        <h1>Clean links and instant redirects.</h1>
+        <p class="hero-text">Generate branded short URLs and track click activity without slowing users down.</p>
 
-        <div class="stat-grid">
+        <div class="hero-feature-row">
+            <span class="feature-chip">Private scope</span>
+            <span class="feature-chip">Async click tracking</span>
+            <span class="feature-chip">Redis cached redirects</span>
+        </div>
+
+        <div class="hero-actions">
+            <a class="button button-primary" href="#shorten-form">Shorten URL</a>
+        </div>
+
+        <div class="stat-grid compact-stats">
             <article class="stat-card">
-                <span>{% if current_user %}Account links{% else %}Your links{% endif %}</span>
+                <span>{% if current_user %}Account links{% else %}Session links{% endif %}</span>
                 <strong>{{ stats.total_links }}</strong>
             </article>
             <article class="stat-card">
                 <span>Total clicks</span>
                 <strong>{{ stats.total_clicks }}</strong>
             </article>
-            <article class="stat-card">
-                <span>Live API rows</span>
-                <strong>{{ recent_links|length }}</strong>
-            </article>
         </div>
     </div>
 
-    <div class="surface-card form-card">
-        <div class="section-heading">
-            <span class="section-tag">Create a short link</span>
-            <h2>Launch a new alias</h2>
-            <p>Use 3-32 lowercase letters, numbers, hyphens, or underscores.</p>
+    <div class="surface-card form-card" id="shorten-form">
+        <div class="section-heading compact-heading">
+            <span class="section-tag">New short link</span>
+            <h2 class="section-title">Create in seconds</h2>
         </div>
 
         <form action="{{ url_for('your_url') }}" method="post" class="link-form">
             <label for="url">Destination URL</label>
             <input type="text" name="url" id="url" placeholder="https://example.com/very/long/link" required>
 
-            <label for="code">Custom short code</label>
+            <label for="code">Custom alias <small>(optional)</small></label>
             <div class="input-with-prefix">
                 <span>{{ request.host }}/</span>
-                <input type="text" name="code" id="code" placeholder="my-launch" minlength="3" maxlength="32" required>
+                <input type="text" name="code" id="code" placeholder="my-launch" minlength="3" maxlength="32">
             </div>
 
             <button class="button button-primary" type="submit">Create short URL</button>
@@ -54,13 +53,13 @@
     </div>
 </section>
 
-<section class="surface-card recent-section">
+<section class="surface-card recent-section clean-section">
     <div class="section-heading section-heading-inline">
         <div>
-            <span class="section-tag">Your links</span>
-            <h2>{% if current_user %}Recent links from your account{% else %}Recent links from this browser{% endif %}</h2>
+            <span class="section-tag">Recent links</span>
+            <h2 class="section-title">{% if current_user %}Latest from your account{% else %}Latest from this session{% endif %}</h2>
         </div>
-        <a class="button button-secondary" href="{{ url_for('session_api') }}">View JSON API</a>
+        <!-- <a class="button button-secondary" href="{{ url_for('session_api') }}">View JSON API</a> -->
     </div>
 
     {% if recent_links %}
@@ -74,9 +73,7 @@
                         </div>
                         <span class="pill">{{ link.clicks }} clicks</span>
                     </div>
-
                     <p class="destination">{{ link.url }}</p>
-
                     <div class="link-meta">
                         <span>{{ link.display_host }}</span>
                         <span>{{ link.created_at }}</span>
@@ -87,8 +84,9 @@
     {% else %}
         <div class="empty-state">
             <h3>No links yet</h3>
-            <p>Create your first short link to populate this showcase section.</p>
+            <p>Shorten your first URL to populate this list.</p>
         </div>
     {% endif %}
 </section>
+
 {% endblock %}
